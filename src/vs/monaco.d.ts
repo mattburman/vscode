@@ -763,6 +763,7 @@ declare namespace monaco {
 		/**
 		 * Transform to a human-readable representation.
 		 */
+		override: any;
 		toString(): string;
 		/**
 		 * Test if equals other selection.
@@ -779,6 +780,7 @@ declare namespace monaco {
 		/**
 		 * Create a new selection with a different `positionLineNumber` and `positionColumn`.
 		 */
+		override: any;
 		setEndPosition(endLineNumber: number, endColumn: number): Selection;
 		/**
 		 * Get the position at `positionLineNumber` and `positionColumn`.
@@ -787,11 +789,13 @@ declare namespace monaco {
 		/**
 		 * Create a new selection with a different `selectionStartLineNumber` and `selectionStartColumn`.
 		 */
+		override: any;
 		setStartPosition(startLineNumber: number, startColumn: number): Selection;
 		/**
 		 * Create a `Selection` from one or two positions
 		 */
-		static fromPositions(start: IPosition, end?: IPosition): Selection;
+		static override: any;
+		fromPositions(start: IPosition, end?: IPosition): Selection;
 		/**
 		 * Create a `Selection` from an `ISelection`.
 		 */
