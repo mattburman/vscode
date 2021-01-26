@@ -381,6 +381,11 @@ async function doStart(): Promise<IDisposable> {
 				...(product.linkProtectionTrustedDomains || []),
 				gitpodDomain
 			]
+		},
+		defaultLayout: {
+			views: [{
+				id: 'terminal'
+			}]
 		}
 	});
 }
