@@ -309,7 +309,6 @@ class BrowserMain extends Disposable {
 						}
 					});
 				}
-
 				async run(accessor: ServicesAccessor): Promise<void> {
 					const dialogService = accessor.get(IDialogService);
 					const hostService = accessor.get(IHostService);
