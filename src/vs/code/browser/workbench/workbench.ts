@@ -262,6 +262,14 @@ async function doStart(): Promise<IDisposable> {
 	const remotePort = location.protocol === 'https:' ? '443' : '80';
 	const remoteAuthority = window.location.host + ':' + remotePort;
 
+	const webWorkerExtensionHostEndpoint = new URL(document.baseURI);
+	webWorkerExtensionHostEndpoint.host = 'extensions-' + webWorkerExtensionHostEndpoint.host;
+	webWorkerExtensionHostEndpoint.pathname += (location.protocol === 'https:'
+		? 'out/vs/workbench/services/extensions/worker/httpsWebWorkerExtensionHostIframe.html'
+		: 'out/vs/workbench/services/extensions/worker/httpsWebWorkerExtensionHostIframe.html');
+	webWorkerExtensionHostEndpoint.search = '';
+	webWorkerExtensionHostEndpoint.hash = '';
+
 	const webviewEndpoint = new URL(document.baseURI);
 	webviewEndpoint.host = 'webview-' + webviewEndpoint.host;
 	webviewEndpoint.pathname += 'out/vs/workbench/contrib/webview/browser/pre';
@@ -443,7 +451,9 @@ async function doStart(): Promise<IDisposable> {
 			enablementHandler: enablement => {
 				// TODO
 			}
-		}
+		},
+		_wrapWebWorkerExtHostInIframe: true,
+		webWorkerExtensionHostIframeSrc: webWorkerExtensionHostEndpoint.toString()
 	});
 }
 
