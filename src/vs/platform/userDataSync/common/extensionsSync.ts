@@ -5,7 +5,7 @@
 
 import {
 	IUserDataSyncStoreService, ISyncExtension, IUserDataSyncLogService, IUserDataSynchroniser, SyncResource, IUserDataSyncResourceEnablementService,
-	IUserDataSyncBackupStoreService, ISyncResourceHandle, USER_DATA_SYNC_SCHEME, IRemoteUserData, ISyncData, Change, ISyncExtensionWithVersion
+	IUserDataSyncBackupStoreService, ISyncResourceHandle, USER_DATA_SYNC_SCHEME, IRemoteUserData, ISyncData, Change, ISyncExtensionWithVersion, IUserData
 } from 'vs/platform/userDataSync/common/userDataSync';
 import { Event } from 'vs/base/common/event';
 import { IEnvironmentService } from 'vs/platform/environment/common/environment';
@@ -515,6 +515,34 @@ export abstract class AbstractExtensionsInitializer extends AbstractInitializer 
 
 	protected async parseExtensions(remoteUserData: IRemoteUserData): Promise<ISyncExtension[] | null> {
 		return remoteUserData.syncData ? await parseAndMigrateExtensions(remoteUserData.syncData, this.extensionManagementService) : null;
+	}
+
+	async initialize({ ref, content }: IUserData): Promise<void> {
+		if (!content) {
+			this.logService.info('Remote content does not exist.', this.resource);
+			return;
+		}
+
+		const syncData = this['parseSyncData'](content);
+		if (!syncData) {
+			return;
+		}
+
+		try {
+			await this.doInitialize({ ref, syncData });
+		} catch (error) {
+			this.logService.error(error);
+		}
+	}
+
+	async doInitialize(remoteUserData: IRemoteUserData): Promise<void> {
+		const remoteExtensions: ISyncExtension[] | null = remoteUserData.syncData ? await parseAndMigrateExtensions(remoteUserData.syncData, this.extensionManagementService) : null;
+		if (!remoteExtensions) {
+			this.logService.info('Skipping initializing extensions because remote extensions does not exist.');
+			return;
+		}
+
+		await this.initializeRemoteExtensions(remoteExtensions);
 	}
 
 	protected generatePreview(remoteExtensions: ISyncExtension[], localExtensions: ILocalExtension[]): IExtensionsInitializerPreviewResult {
