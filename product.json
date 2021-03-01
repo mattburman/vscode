@@ -127,18 +127,18 @@
 			}
 		},
 		{
-			"name": "ms-vscode.remotehub",
-			"version": "0.5.3",
-			"repo": "https://github.com/microsoft/vscode-remotehub",
+			"name": "redhat.vscode-yaml",
+			"version": "0.15.0",
+			"repo": "https://github.com/redhat-developer/vscode-yaml",
 			"metadata": {
-				"id": "ed0ffe1d-36f0-49a0-bafe-da68355eb33a",
+				"id": "2061917f-f76a-458a-8da9-f162de22b97e",
 				"publisherId": {
-					"publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee",
-					"publisherName": "ms-vscode",
-					"displayName": "Microsoft",
+					"publisherId": "eed56242-9699-4317-8bc7-e9f4b9bdd3ff",
+					"publisherName": "redhat",
+					"displayName": "Red Hat",
 					"flags": "verified"
 				},
-				"publisherDisplayName": "Microsoft"
+				"publisherDisplayName": "Red Hat"
 			}
 		}
 	],
