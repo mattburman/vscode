@@ -209,23 +209,24 @@ export class TelemetryService implements ITelemetryService {
 
 const TELEMETRY_SECTION_ID = 'telemetry';
 
-
-Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration({
-	'id': TELEMETRY_SECTION_ID,
-	'order': 110,
-	'type': 'object',
-	'title': localize('telemetryConfigurationTitle', "Telemetry"),
-	'properties': {
-		'telemetry.enableTelemetry': {
-			'type': 'boolean',
-			'markdownDescription':
-				!product.privacyStatementUrl ?
-					localize('telemetry.enableTelemetry', "Enable usage data and errors to be sent to a Microsoft online service.") :
-					localize('telemetry.enableTelemetryMd', "Enable usage data and errors to be sent to a Microsoft online service. Read our privacy statement [here]({0}).", product.privacyStatementUrl),
-			'default': true,
-			'restricted': true,
-			'scope': ConfigurationScope.APPLICATION,
-			'tags': ['usesOnlineServices']
+if (!!product.enableTelemetry) {
+	Registry.as<IConfigurationRegistry>(Extensions.Configuration).registerConfiguration({
+		'id': TELEMETRY_SECTION_ID,
+		'order': 110,
+		'type': 'object',
+		'title': localize('telemetryConfigurationTitle', "Telemetry"),
+		'properties': {
+			'telemetry.enableTelemetry': {
+				'type': 'boolean',
+				'markdownDescription':
+					!product.privacyStatementUrl ?
+						localize('telemetry.enableTelemetry', "Enable usage data and errors to be sent to a Microsoft online service.") :
+						localize('telemetry.enableTelemetryMd', "Enable usage data and errors to be sent to a Microsoft online service. Read our privacy statement [here]({0}).", product.privacyStatementUrl),
+				'default': true,
+				'restricted': true,
+				'scope': ConfigurationScope.APPLICATION,
+				'tags': ['usesOnlineServices']
+			}
 		}
-	}
-});
+	});
+}
