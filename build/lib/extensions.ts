@@ -238,7 +238,7 @@ const excludedExtensions = [
 	'ms-vscode.node-debug2',
 	'vscode-notebook-tests',
 	'vscode-custom-editor-tests',
-	'vscode.github-authentication'
+	'github-authentication'
 ];
 
 const marketplaceWebExtensionsExclude = new Set([
