@@ -18,7 +18,7 @@ exports.dirs = [
 	'extensions/extension-editing',
 	'extensions/git',
 	'extensions/github',
-	'extensions/github-authentication',
+	// 'extensions/github-authentication',
 	'extensions/grunt',
 	'extensions/gulp',
 	'extensions/html-language-features',
