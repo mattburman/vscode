@@ -195,6 +195,28 @@ export class CLIServerBase {
 		}
 	}
 
+	private async runCommand(data: RunCommandPipeArgs, res: http.ServerResponse) {
+		try {
+			const { command, args } = data;
+			const result = await this._commands.executeCommand(command, ...args);
+			res.writeHead(200);
+			res.write(JSON.stringify(result || ''), err => {
+				if (err) {
+					this.logService.error(err);
+				}
+			});
+			res.end();
+		} catch (err) {
+			res.writeHead(500);
+			res.write(String(err), err => {
+				if (err) {
+					this.logService.error(err);
+				}
+			});
+			res.end();
+		}
+	}
+
 	dispose(): void {
 		this._server.close();
 
