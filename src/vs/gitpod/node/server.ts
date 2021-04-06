@@ -302,7 +302,11 @@ async function installInitialExtensions(
 	});
 }
 async function downloadInitialExtension(url: string, requestService: IRequestService, fileService: IFileService): Promise<URI> {
-	const context = await requestService.request({ type: 'GET', url }, CancellationToken.None);
+	const context = await requestService.request({
+		type: 'GET', url, headers: {
+			'Content-Type': '*/*' // GCP requires that the content-type header match those used during the signing operation (*/* in our case)
+		}
+	}, CancellationToken.None);
 	if (context.res.statusCode !== 200) {
 		const message = await asText(context);
 		throw new Error(`expected 200, got back ${context.res.statusCode} instead.\n\n${message}`);
