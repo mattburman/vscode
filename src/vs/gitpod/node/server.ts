@@ -820,7 +820,7 @@ async function main(): Promise<void> {
 
 			const webSocket = new WebSocketNodeSocket(new NodeSocket(socket), permessageDeflate, null, permessageDeflate);
 			const protocol = new PersistentProtocol(webSocket);
-			const controlListener = protocol.onControlMessage(raw => {
+			const controlListener = protocol.onControlMessage(async raw => {
 				const msg = <HandshakeMessage>JSON.parse(raw.toString());
 				if (msg.type === 'error') {
 					logService.error(`[${token}] error control message:`, msg.reason);
@@ -927,6 +927,7 @@ async function main(): Promise<void> {
 							const initialDataChunk = Buffer.from(protocol.readEntireBuffer().buffer).toString('base64');
 							protocol.dispose();
 							socket.pause();
+							await webSocket.drain();
 
 							try {
 								// see src/vs/workbench/services/extensions/electron-browser/localProcessExtensionHost.ts
@@ -1009,7 +1010,6 @@ async function main(): Promise<void> {
 								extensionHost.on('message', (msg: any) => {
 									if (isActiveCliIpcHooKMessage(msg)) {
 										activeCliIpcHook = msg.value;
-										console.log('on message: ' + activeCliIpcHook);
 									}
 								});
 								client.extensionHost = extensionHost;
@@ -1029,6 +1029,7 @@ async function main(): Promise<void> {
 							const initialDataChunk = Buffer.from(protocol.readEntireBuffer().buffer).toString('base64');
 							protocol.dispose();
 							socket.pause();
+							await webSocket.drain();
 
 							const inflateBytes = Buffer.from(webSocket.recordedInflateBytes.buffer).toString('base64');
 							client.extensionHost.send({
