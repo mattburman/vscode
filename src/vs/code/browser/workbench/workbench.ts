@@ -489,7 +489,6 @@ async function doStart(): Promise<IDisposable> {
 				// TODO
 			}
 		},
-		_wrapWebWorkerExtHostInIframe: true,
 		webWorkerExtensionHostIframeSrc: webWorkerExtensionHostEndpoint.toString()
 	});
 }

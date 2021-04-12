@@ -18,7 +18,7 @@ const ansiColors = require("ansi-colors");
 const os = require("os");
 const replace = require('gulp-replace');
 const watch = require('./watch');
-const reporter = reporter_1.createReporter();
+const reporter = (0, reporter_1.createReporter)();
 function getTypeScriptCompilerOptions(src) {
     const rootDir = path.join(__dirname, `../../${src}`);
     let options = {};

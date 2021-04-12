@@ -178,10 +178,10 @@
     global-agent "^2.0.2"
     global-tunnel-ng "^2.7.1"
 
-"@gitpod/gitpod-protocol@master":
-  version "0.1.5-master.453"
-  resolved "https://registry.yarnpkg.com/@gitpod/gitpod-protocol/-/gitpod-protocol-0.1.5-master.453.tgz#c2e9b04acedc4a13d52092a65b055c3ef9386a94"
-  integrity sha512-MOKm3lLThZCadJ76G+dEQeZYSWc8Dh6knYMDar4qQTjST0jF6dzX2tHI/yWQAz9QgUui+SWLqp9GUasyYaF5Zg==
+"@gitpod/gitpod-protocol@aledbf-grpcjs":
+  version "0.1.5-aledbf-grpcjs.22"
+  resolved "https://registry.yarnpkg.com/@gitpod/gitpod-protocol/-/gitpod-protocol-0.1.5-aledbf-grpcjs.22.tgz#c8e6d9b3ca10ba358f2ec5778e0d97c4bc061866"
+  integrity sha512-QvOU2MgI1GoBIxTO+YeSr+lRP5Z3te6LZp6/YABXuwr5M554DtqQjwXNh5/iFHW4F07OUcZtyBmQLbMT90DEdg==
   dependencies:
     ajv "^6.5.4"
     inversify "^5.0.1"
@@ -197,18 +197,18 @@
     vscode-ws-jsonrpc "^0.2.0"
     ws "^5.2.2"
 
-"@gitpod/supervisor-api-grpc@ak-github-auth":
-  version "0.1.5-ak-github-auth.16"
-  resolved "https://registry.yarnpkg.com/@gitpod/supervisor-api-grpc/-/supervisor-api-grpc-0.1.5-ak-github-auth.16.tgz#e18507e59ff2309a3a830392fb1418dc215ac935"
-  integrity sha512-K+CnL5fvzkBOqP3/4Pu53NLEj+bWV7UI913c+Wro4X1jb4XE+JUkUG4TEIx3QX3RJ5DV7hgLfCABWblHtsaqkQ==
+"@gitpod/supervisor-api-grpc@aledbf-grpcjs":
+  version "0.1.5-aledbf-grpcjs.22"
+  resolved "https://registry.yarnpkg.com/@gitpod/supervisor-api-grpc/-/supervisor-api-grpc-0.1.5-aledbf-grpcjs.22.tgz#5fe2e8ca6d38b757ffa4f18bae3d5c18d7307841"
+  integrity sha512-mOX863A3IHoUpuTa1rNoxmn/XQTADubIoxS1Ktfdj8+Xz3CGFJmcwZ1hjJUkN52fRHNr1XECB3OFGuQ11OwmWA==
   dependencies:
     "@grpc/grpc-js" "^1.1.5"
-    google-protobuf "^3.8.0-rc.1"
+    google-protobuf "^3.15.8"
 
 "@grpc/grpc-js@^1.1.5", "@grpc/grpc-js@latest":
-  version "1.2.11"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.2.11.tgz#68faa56bded64844294dc6429185503376f05ff1"
-  integrity sha512-DZqx3nHBm2OGY7NKq4sppDEfx4nBAsQH/d/H/yxo/+BwpVLWLGs+OorpwQ+Fqd6EgpDEoi4MhqndjGUeLl/5GA==
+  version "1.2.12"
+  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.2.12.tgz#0153f27512acf69184bb52c0a1035ca91d6c14b0"
+  integrity sha512-+gPCklP1eqIgrNPyzddYQdt9+GvZqPlLpIjIo+TveE+gbtp74VV1A2ju8ExeO8ma8f7MbpaGZx/KJPYVWL9eDw==
   dependencies:
     "@types/node" ">=12.12.47"
     google-auth-library "^6.1.1"
@@ -4496,10 +4496,10 @@ google-p12-pem@^3.0.3:
   dependencies:
     node-forge "^0.10.0"
 
-google-protobuf@^3.8.0-rc.1:
-  version "3.14.0"
-  resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-3.14.0.tgz#20373d22046e63831a5110e11a84f713cc43651e"
-  integrity sha512-bwa8dBuMpOxg7COyqkW6muQuvNnWgVN8TX/epDRGW5m0jcrmq2QJyCyiV8ZE2/6LaIIqJtiv9bYokFhfpy/o6w==
+google-protobuf@^3.15.8:
+  version "3.15.8"
+  resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-3.15.8.tgz#5f3948905e4951c867d6bc143f385a80e2a39efe"
+  integrity sha512-2jtfdqTaSxk0cuBJBtTTWsot4WtR9RVr2rXg7x7OoqiuOKopPrwXpM1G4dXIkLcUNRh3RKzz76C8IOkksZSeOw==
 
 got@^9.6.0:
   version "9.6.0"

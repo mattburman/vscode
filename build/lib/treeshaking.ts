@@ -530,7 +530,7 @@ function markNodes(ts: typeof import('typescript'), languageService: ts.Language
 				setColor(symbolImportNode, NodeColor.Black);
 			}
 
-			if (symbol && !nodeIsInItsOwnDeclaration(nodeSourceFile, node, symbol)) {
+			if (symbol && !nodeIsInItsOwnDeclaration(nodeSourceFile, node, symbol) && symbol.declarations) {
 				for (let i = 0, len = symbol.declarations.length; i < len; i++) {
 					const declaration = symbol.declarations[i];
 					if (ts.isSourceFile(declaration)) {
@@ -596,6 +596,9 @@ function markNodes(ts: typeof import('typescript'), languageService: ts.Language
 }
 
 function nodeIsInItsOwnDeclaration(nodeSourceFile: ts.SourceFile, node: ts.Node, symbol: ts.Symbol): boolean {
+	if (!symbol.declarations) {
+		return false;
+	}
 	for (let i = 0, len = symbol.declarations.length; i < len; i++) {
 		const declaration = symbol.declarations[i];
 		const declarationSourceFile = declaration.getSourceFile();
@@ -838,7 +841,7 @@ function getRealNodeSymbol(ts: typeof import('typescript'), checker: ts.TypeChec
 	// get the aliased symbol instead. This allows for goto def on an import e.g.
 	//   import {A, B} from "mod";
 	// to jump to the implementation directly.
-	if (symbol && symbol.flags & ts.SymbolFlags.Alias && shouldSkipAlias(node, symbol.declarations[0])) {
+	if (symbol && symbol.flags & ts.SymbolFlags.Alias && symbol.declarations && shouldSkipAlias(node, symbol.declarations[0])) {
 		const aliased = checker.getAliasedSymbol(symbol);
 		if (aliased.declarations) {
 			// We should mark the import as visited

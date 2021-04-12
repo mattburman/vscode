@@ -10,9 +10,10 @@ import { DisposableStore } from 'vs/base/common/lifecycle';
 import * as platform from 'vs/base/common/platform';
 import { supervisorDeadlines, supervisorMetadata, terminalServiceClient } from 'vs/gitpod/node/supervisor-client';
 import { ILogService } from 'vs/platform/log/common/log';
-import { ITerminalChildProcess, ITerminalLaunchError } from 'vs/platform/terminal/common/terminal';
+import { ITerminalChildProcess, ITerminalLaunchError, TerminalShellType } from 'vs/platform/terminal/common/terminal';
+import { TerminalDataBufferer } from 'vs/platform/terminal/common/terminalDataBuffering';
+import { IPtyHostProcessReplayEvent } from 'vs/platform/terminal/common/terminalProcess';
 import { TerminalRecorder } from 'vs/platform/terminal/common/terminalRecorder';
-import { IRemoteTerminalProcessEvent, IRemoteTerminalProcessReplayEvent } from 'vs/workbench/contrib/terminal/common/remoteTerminalChannel';
 
 export interface OpenSupervisorTerminalProcessOptions {
 	shell: string
@@ -34,29 +35,30 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 		return this.syncState?.alias;
 	}
 
-	private readonly _recorder = new TerminalRecorder(1, 1);
+	private readonly _recorder = new TerminalRecorder(0, 0);
 
 	private readonly _onProcessData = this.add(new Emitter<string>());
-	get onProcessData(): Event<string> { return this._onProcessData.event; }
-	private readonly _onProcessExit = this.add(new Emitter<number>());
-	get onProcessExit(): Event<number> { return this._onProcessExit.event; }
-	private readonly _onProcessReady = this.add(new Emitter<{ pid: number, cwd: string }>());
-	get onProcessReady(): Event<{ pid: number, cwd: string }> { return this._onProcessReady.event; }
-	private readonly _onProcessTitleChanged = this.add(new Emitter<string>());
-	get onProcessTitleChanged(): Event<string> { return this._onProcessTitleChanged.event; }
-
-	private readonly _onEvent = this.add(new Emitter<IRemoteTerminalProcessEvent>({
-		onListenerDidAdd: (_: Emitter<IRemoteTerminalProcessEvent>, listener: (e: IRemoteTerminalProcessEvent) => any) => {
-			this.listen();
-			listener(this.replay());
-		},
+	private readonly _onBufferredProcessData = this.add(new Emitter<string>({
 		onLastListenerRemove: () => {
 			if (!this.shouldPersist) {
+				this.logService.info(`code server: ${this.id}:${this.alias}: last client disconnected, shutting down`);
 				this.shutdownImmediate();
 			}
 		}
 	}));
-	get onEvent(): Event<IRemoteTerminalProcessEvent> { return this._onEvent.event; }
+	get onProcessData(): Event<string> { return this._onBufferredProcessData.event; }
+	private readonly _onProcessExit = this.add(new Emitter<number>());
+	get onProcessExit(): Event<number> { return this._onProcessExit.event; }
+	private readonly _onProcessReady = this.add(new Emitter<{ pid: number, cwd: string }>());
+	get onProcessReady(): Event<{ pid: number, cwd: string }> { return this._onProcessReady.event; }
+	private readonly _onProcessReplay = new Emitter<IPtyHostProcessReplayEvent>();
+	readonly onProcessReplay = this._onProcessReplay.event;
+	private readonly _onProcessTitleChanged = this.add(new Emitter<string>());
+	get onProcessTitleChanged(): Event<string> { return this._onProcessTitleChanged.event; }
+	private readonly _onProcessShellTypeChanged = this.add(new Emitter<TerminalShellType>());
+	get onProcessShellTypeChanged(): Event<TerminalShellType> { return this._onProcessShellTypeChanged.event; }
+
+	private readonly _bufferer: TerminalDataBufferer;
 
 	constructor(
 		readonly id: number,
@@ -68,20 +70,13 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 		private readonly openOptions?: OpenSupervisorTerminalProcessOptions
 	) {
 		super();
-		this.onProcessReady(e => this._onEvent.fire({
-			type: 'ready',
-			...e
-		}));
-		this.onProcessTitleChanged(title => this._onEvent.fire({
-			type: 'titleChanged',
-			title
-		}));
-		this.onProcessExit(exitCode => this._onEvent.fire({
-			type: 'exit',
-			exitCode
-		}));
-		// TODO execCommand
-		// TODO orphan?
+		// Data buffering to reduce the amount of messages going to the renderer
+		this._bufferer = new TerminalDataBufferer((_, data) => this._onBufferredProcessData.fire(data));
+		this.add(this._bufferer.startBuffering(id, this._onProcessData.event));
+		this.add(this.onProcessExit(() => this._bufferer.stopBuffering(this.id)));
+
+		// Data recording for reconnect
+		this.add(this._onProcessData.event(e => this._recorder.recordData(e)));
 	}
 
 	acknowledgeDataEvent(charCount: number): void {
@@ -89,6 +84,13 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 	}
 
 	async start(): Promise<ITerminalLaunchError | undefined> {
+		if (this.syncState) {
+			this._onProcessReady.fire({ pid: this.syncState.pid, cwd: this.syncState.currentWorkdir });
+			this._onProcessTitleChanged.fire(this.syncState.title);
+			this.triggerReplay();
+			this.listen();
+			return undefined;
+		}
 		try {
 			if (!this.openOptions) {
 				return {
@@ -121,6 +123,7 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 					this._onProcessTitleChanged.fire(title);
 				}, 0);
 			}
+			this.listen();
 			return undefined;
 		} catch (err) {
 			this.logService.error(`code server: ${this.id} terminal: failed to open:`, err);
@@ -281,6 +284,10 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 		if (!size) {
 			return;
 		}
+
+		// Buffered events should flush when a resize occurs
+		this._bufferer.flushBuffer(this.id);
+
 		const request = new SetTerminalSizeRequest();
 		request.setAlias(this.alias);
 		request.setSize(size);
@@ -320,25 +327,23 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 			clearTimeout(this.closeTimeout);
 			this.shutdownGracefully();
 		}
-		this._recorder.recordData(data);
 	}
 
 	private toSize(cols: number, rows: number): TerminalSize | undefined {
-		if (typeof cols !== 'number' || typeof rows !== 'number' || isNaN(cols) || isNaN(rows)) {
+		this._recorder.recordResize(cols, rows);
+
+		if (typeof cols !== 'number' || typeof rows !== 'number' || isNaN(cols)) {
 			return undefined;
 		}
 		const size = new TerminalSize();
 		size.setCols(Math.max(cols, 1));
 		size.setRows(Math.max(rows, 1));
-		this._recorder.recordResize(size.getCols(), size.getRows());
 		return size;
 	}
 
-	private replay(): IRemoteTerminalProcessReplayEvent {
-		return {
-			type: 'replay',
-			events: this._recorder.generateReplayEvent().events
-		};
+	private triggerReplay(): void {
+		const event = this._recorder.generateReplayEvent();
+		this._onProcessReplay.fire(event);
 	}
 
 }
