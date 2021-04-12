@@ -23,8 +23,7 @@ const packageJson = require('../package.json');
 
 const { compileBuildTask } = require('./gulpfile.compile');
 gulp.task(task.define('compile-gitpod', compileBuildTask));
-const { compileExtensionsBuildTask } = require('./gulpfile.extensions');
-gulp.task(task.define('compile-extensions-gitpod', compileExtensionsBuildTask));
+const { compileExtensionsCi } = require('./gulpfile.extensions');
 
 gulp.task(task.define('watch-init', require('./lib/compilation').watchTask('out', false)));
 
@@ -322,7 +321,7 @@ const dashed = (str) => (str ? `-${str}` : ``);
 
 	const gitpodTask = task.define(`gitpod${dashed(minified)}`, task.series(
 		compileBuildTask,
-		compileExtensionsBuildTask,
+		compileExtensionsCi,
 		minified ? minifyGitpodTask : optimizeGitpodTask,
 		packageGitpod
 	));

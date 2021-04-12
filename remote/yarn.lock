@@ -18,12 +18,12 @@
   integrity sha512-K+CnL5fvzkBOqP3/4Pu53NLEj+bWV7UI913c+Wro4X1jb4XE+JUkUG4TEIx3QX3RJ5DV7hgLfCABWblHtsaqkQ==
   dependencies:
     "@grpc/grpc-js" "^1.1.5"
-    google-protobuf "^3.8.0-rc.1"
+    google-protobuf "^3.15.8"
 
 "@grpc/grpc-js@^1.1.5", "@grpc/grpc-js@latest":
-  version "1.2.11"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.2.11.tgz#68faa56bded64844294dc6429185503376f05ff1"
-  integrity sha512-DZqx3nHBm2OGY7NKq4sppDEfx4nBAsQH/d/H/yxo/+BwpVLWLGs+OorpwQ+Fqd6EgpDEoi4MhqndjGUeLl/5GA==
+  version "1.2.12"
+  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.2.12.tgz#0153f27512acf69184bb52c0a1035ca91d6c14b0"
+  integrity sha512-+gPCklP1eqIgrNPyzddYQdt9+GvZqPlLpIjIo+TveE+gbtp74VV1A2ju8ExeO8ma8f7MbpaGZx/KJPYVWL9eDw==
   dependencies:
     "@types/node" ">=12.12.47"
     google-auth-library "^6.1.1"

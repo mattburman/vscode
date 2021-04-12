@@ -16,7 +16,6 @@ import * as os from 'os';
 import * as path from 'path';
 import * as url from 'url';
 import * as util from 'util';
-import { getPathFromAmdModule } from 'vs/base/common/amd';
 import { RunOnceScheduler } from 'vs/base/common/async';
 import { VSBuffer } from 'vs/base/common/buffer';
 import { CancellationToken, CancellationTokenSource } from 'vs/base/common/cancellation';
@@ -24,7 +23,7 @@ import { IRemoteConsoleLog } from 'vs/base/common/console';
 import { onUnexpectedError, setUnexpectedErrorHandler } from 'vs/base/common/errors';
 import { Emitter, Event } from 'vs/base/common/event';
 import { IDisposable } from 'vs/base/common/lifecycle';
-import { Schemas } from 'vs/base/common/network';
+import { FileAccess, Schemas } from 'vs/base/common/network';
 import { join } from 'vs/base/common/path';
 import * as platform from 'vs/base/common/platform';
 import Severity from 'vs/base/common/severity';
@@ -323,7 +322,8 @@ async function main(): Promise<void> {
 
 	const parsedArgs = parseArgs(process.argv.splice(0, 2), OPTIONS);
 	parsedArgs['user-data-dir'] = URI.file(path.join(os.homedir(), product.dataFolderName)).fsPath;
-	const environmentService = new NativeEnvironmentService(parsedArgs);
+	const productService = { _serviceBrand: undefined, ...product };
+	const environmentService = new NativeEnvironmentService(parsedArgs, productService);
 
 	// see src/vs/code/electron-main/main.ts#142
 	const bufferLogService = new BufferLogService();
@@ -347,8 +347,9 @@ async function main(): Promise<void> {
 	const diskFileSystemProvider = new DiskFileSystemProvider(logService);
 	fileService.registerProvider(Schemas.file, diskFileSystemProvider);
 
-	const systemExtensionRoot = path.normalize(path.join(getPathFromAmdModule(require, ''), '..', 'extensions'));
-	const extraDevSystemExtensionsRoot = path.normalize(path.join(getPathFromAmdModule(require, ''), '..', '.build', 'builtInExtensions'));
+	const rootPath = FileAccess.asFileUri('', require).fsPath;
+	const systemExtensionRoot = path.normalize(path.join(rootPath, '..', 'extensions'));
+	const extraDevSystemExtensionsRoot = path.normalize(path.join(rootPath, '..', '.build', 'builtInExtensions'));
 	const logger = new Logger((severity, source, message) => {
 		const msg = devMode && source ? `[${source}]: ${message}` : message;
 		if (severity === Severity.Error) {
@@ -646,7 +647,7 @@ async function main(): Promise<void> {
 	services.set(IFileService, fileService);
 
 	services.set(IConfigurationService, new SyncDescriptor(ConfigurationService, [environmentService.settingsResource, fileService]));
-	services.set(IProductService, { _serviceBrand: undefined, ...product });
+	services.set(IProductService, productService);
 	services.set(IRequestService, new SyncDescriptor(RequestService));
 	services.set(IDownloadService, new SyncDescriptor(DownloadService));
 
@@ -959,7 +960,7 @@ async function main(): Promise<void> {
 										opts.execArgv = ['--inspect-port=0'];
 									}
 								}
-								const extensionHost = cp.fork(getPathFromAmdModule(require, 'bootstrap-fork'), ['--type=extensionHost', '--uriTransformerPath=' + uriTransformerPath], opts);
+								const extensionHost = cp.fork(FileAccess.asFileUri('bootstrap-fork', require).fsPath, ['--type=extensionHost', '--uriTransformerPath=' + uriTransformerPath], opts);
 								extensionHost.stdout!.setEncoding('utf8');
 								extensionHost.stderr!.setEncoding('utf8');
 								Event.fromNodeEventEmitter<string>(extensionHost.stdout!, 'data')(msg => logService.info(`[${token}][extension host][${extensionHost.pid}][stdout] ${msg}`));

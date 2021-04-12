@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	};
 	const supervisorAddr = process.env.SUPERVISOR_ADDR || 'localhost:22999';
 	const supervisorClientOptions: Partial<grpc.ClientOptions> = {
-		'grpc.primary_user_agent': `${vscode.env.appName}/${vscode.version} ${context.extensionId}/${context.extensionVersion}`,
+		'grpc.primary_user_agent': `${vscode.env.appName}/${vscode.version} ${context.extension.id}/${context.extension.packageJSON.version}`,
 	};
 	const supervisorMetadata = new grpc.Metadata();
 	const statusServiceClient = new StatusServiceClient(supervisorAddr, grpc.credentials.createInsecure(), supervisorClientOptions);
@@ -828,7 +828,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			const workspaceContext = listener.info.workspace.context;
 
 			if (PullRequestContext.is(workspaceContext) && /github\.com/i.test(workspaceContextUrl.authority)) {
-				vscode.commands.executeCommand('pr.preload');
+				vscode.commands.executeCommand('github.api.preloadPullRequest');
 			}
 			// TODO gitlab/bitbucket/any other git hoisting?
 
