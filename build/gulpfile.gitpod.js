@@ -189,7 +189,7 @@ function packageWebTask(sourceFolderName, destinationFolderName) {
 
 		const runtimeDependencies = gulp.src(dependenciesSrc, { base, dot: true })
 			.pipe(filter(['**', '!**/package-lock.json', '!**/yarn.lock']))
-			.pipe(util.cleanNodeModules(path.join(__dirname, '.moduleignore')));
+			.pipe(util.cleanNodeModules(path.join(__dirname, '.webignore')));
 
 		const name = product.applicationName;
 		const packageJsonStream = gulp.src([base + '/package.json'], { base })
