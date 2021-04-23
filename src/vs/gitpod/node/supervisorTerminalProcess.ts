@@ -332,12 +332,12 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 	private toSize(cols: number, rows: number): TerminalSize | undefined {
 		this._recorder.recordResize(cols, rows);
 
-		if (typeof cols !== 'number' || typeof rows !== 'number' || isNaN(cols)) {
+		if (typeof cols !== 'number' || typeof rows !== 'number' || isNaN(cols) || isNaN(rows)) {
 			return undefined;
 		}
 		const size = new TerminalSize();
-		size.setCols(Math.max(cols, 1));
-		size.setRows(Math.max(rows, 1));
+		size.setCols(Math.max(cols, 0));
+		size.setRows(Math.max(rows, 0));
 		return size;
 	}
 
