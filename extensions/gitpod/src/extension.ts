@@ -55,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	}))();
 	const checkoutLocation = workspaceInfoResponse.getCheckoutLocation();
 	const workspaceId = workspaceInfoResponse.getWorkspaceId();
+	const instanceId = workspaceInfoResponse.getInstanceId();
 	const gitpodHost = workspaceInfoResponse.getGitpodHost();
 	const gitpodApi = workspaceInfoResponse.getGitpodApi()!;
 	const workspaceContextUrl = vscode.Uri.parse(workspaceInfoResponse.getWorkspaceContextUrl());
@@ -71,7 +72,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		'resource:workspace::' + workspaceId + '::get/update',
 		'function:accessCodeSyncStorage',
 		'function:getLoggedInUser',
-		'function:takeSnapshot'
+		'function:takeSnapshot',
+		'function:sendHeartBeat'
 	]);
 	const pendingServerToken = (async () => {
 		const getTokenRequest = new GetTokenRequest();
@@ -85,6 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}))();
 		return getTokenResponse.getToken();
 	})();
+	const pendingWillCloseSocket: Promise<void>[] = [];
 	(async () => {
 		const serverToken = await pendingServerToken;
 
@@ -108,7 +111,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			startClosed: false,
 			WebSocket: GitpodServerWebSocket
 		});
-		context.subscriptions.push(new vscode.Disposable(() => {
+		context.subscriptions.push(new vscode.Disposable(async () => {
+			await Promise.all(pendingWillCloseSocket.map(p => p.catch(console.error)));
 			webSocket.close();
 		}));
 		webSocket.onerror = console.error;
@@ -842,6 +846,77 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		})();
 	}
+	//#endregion
+
+	//#region hearbeat
+	let lastActivity = 0;
+	const updateLastActivitiy = () => {
+		lastActivity = new Date().getTime();
+	};
+	const sendHeartBeat = async (wasClosed?: true) => {
+		const suffix = wasClosed ? 'was closed heartbeat' : 'heartbeat';
+		try {
+			await gitpodService.server.sendHeartBeat({ instanceId, wasClosed });
+		} catch (err) {
+			console.error(`failed to send ${suffix}`, err);
+		}
+	};
+	sendHeartBeat();
+	context.subscriptions.push(new vscode.Disposable(() =>
+		pendingWillCloseSocket.push(sendHeartBeat(true))
+	));
+
+	let activityInterval = 10000;
+	const heartBeatHandle = setInterval(() => {
+		if (lastActivity + activityInterval < new Date().getTime()) {
+			// no activity, no heartbeat
+			return;
+		}
+		sendHeartBeat();
+	}, activityInterval);
+	context.subscriptions.push(
+		{
+			dispose: () => {
+				clearInterval(heartBeatHandle);
+			}
+		},
+		vscode.window.onDidChangeActiveTextEditor(updateLastActivitiy),
+		vscode.window.onDidChangeVisibleTextEditors(updateLastActivitiy),
+		vscode.window.onDidChangeTextEditorSelection(updateLastActivitiy),
+		vscode.window.onDidChangeTextEditorVisibleRanges(updateLastActivitiy),
+		vscode.window.onDidChangeTextEditorOptions(updateLastActivitiy),
+		vscode.window.onDidChangeTextEditorViewColumn(updateLastActivitiy),
+		vscode.window.onDidChangeActiveTerminal(updateLastActivitiy),
+		vscode.window.onDidOpenTerminal(updateLastActivitiy),
+		vscode.window.onDidCloseTerminal(updateLastActivitiy),
+		vscode.window.onDidChangeWindowState(updateLastActivitiy),
+		vscode.window.onDidChangeActiveColorTheme(updateLastActivitiy),
+		vscode.authentication.onDidChangeSessions(updateLastActivitiy),
+		vscode.debug.onDidChangeActiveDebugSession(updateLastActivitiy),
+		vscode.debug.onDidStartDebugSession(updateLastActivitiy),
+		vscode.debug.onDidReceiveDebugSessionCustomEvent(updateLastActivitiy),
+		vscode.debug.onDidTerminateDebugSession(updateLastActivitiy),
+		vscode.debug.onDidChangeBreakpoints(updateLastActivitiy),
+		vscode.extensions.onDidChange(updateLastActivitiy),
+		vscode.languages.onDidChangeDiagnostics(updateLastActivitiy),
+		vscode.tasks.onDidStartTask(updateLastActivitiy),
+		vscode.tasks.onDidStartTaskProcess(updateLastActivitiy),
+		vscode.tasks.onDidEndTask(updateLastActivitiy),
+		vscode.tasks.onDidEndTaskProcess(updateLastActivitiy),
+		vscode.workspace.onDidChangeWorkspaceFolders(updateLastActivitiy),
+		vscode.workspace.onDidOpenTextDocument(updateLastActivitiy),
+		vscode.workspace.onDidCloseTextDocument(updateLastActivitiy),
+		vscode.workspace.onDidChangeTextDocument(updateLastActivitiy),
+		vscode.workspace.onWillSaveTextDocument(updateLastActivitiy),
+		vscode.workspace.onDidSaveTextDocument(updateLastActivitiy),
+		vscode.workspace.onWillCreateFiles(updateLastActivitiy),
+		vscode.workspace.onDidCreateFiles(updateLastActivitiy),
+		vscode.workspace.onWillDeleteFiles(updateLastActivitiy),
+		vscode.workspace.onDidDeleteFiles(updateLastActivitiy),
+		vscode.workspace.onWillRenameFiles(updateLastActivitiy),
+		vscode.workspace.onDidRenameFiles(updateLastActivitiy),
+		vscode.workspace.onDidChangeConfiguration(updateLastActivitiy)
+	);
 	//#endregion
 
 	await Promise.all(pendingActivate.map(p => p.catch(console.error)));
