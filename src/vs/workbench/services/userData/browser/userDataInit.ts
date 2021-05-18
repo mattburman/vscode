@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { IStorageService, StorageScope } from 'vs/platform/storage/common/storage';
-import { AbstractExtensionsInitializer, ExtensionsInitializer, getExtensionStorageState, IExtensionsInitializerPreviewResult, storeExtensionStorageState } from 'vs/platform/userDataSync/common/extensionsSync';
+import { IStorageService } from 'vs/platform/storage/common/storage';
+import { AbstractExtensionsInitializer, getExtensionStorageState, IExtensionsInitializerPreviewResult, storeExtensionStorageState } from 'vs/platform/userDataSync/common/extensionsSync';
 import { GlobalStateInitializer, UserDataSyncStoreTypeSynchronizer } from 'vs/platform/userDataSync/common/globalStateSync';
 import { KeybindingsInitializer } from 'vs/platform/userDataSync/common/keybindingsSync';
 import { SettingsInitializer } from 'vs/platform/userDataSync/common/settingsSync';

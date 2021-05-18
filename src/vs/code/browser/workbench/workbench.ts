@@ -429,6 +429,7 @@ async function doStart(): Promise<IDisposable> {
 		},
 		initialColorTheme: {
 			themeType: ColorScheme.LIGHT,
+			// should be aligned with extensions/theme-defaults/themes/gitpod-light-color-theme.json
 			colors: {
 				'statusBarItem.remoteBackground': '#FF8A00',
 				'statusBarItem.remoteForeground': '#f9f9f9',

@@ -331,7 +331,7 @@ async function main(): Promise<void> {
 	registerErrorHandler(logService);
 
 	// see src/vs/code/electron-main/main.ts#204
-	await Promise.all<void | undefined>([
+	await Promise.all<string | undefined>([
 		environmentService.extensionsPath,
 		environmentService.logsPath,
 		environmentService.globalStorageHome.fsPath,
@@ -379,7 +379,8 @@ async function main(): Promise<void> {
 					workspaceStorageHome: environmentService.workspaceStorageHome,
 					userHome: environmentService.userHome,
 					os: platform.OS,
-					marks: []
+					marks: [],
+					useHostProxy: false
 				} as IRemoteAgentEnvironmentDTO, uriTranformer);
 			}
 			if (command === 'scanSingleExtension') {

@@ -1,8 +1,11 @@
 {
-	"extends": "../shared.tsconfig.json",
+	"extends": "../tsconfig.base.json",
 	"compilerOptions": {
 		"outDir": "./out",
-		"esModuleInterop": true
+		"experimentalDecorators": true,
+		"typeRoots": [
+			"./node_modules/@types"
+		]
 	},
 	"include": [
 		"src/**/*"

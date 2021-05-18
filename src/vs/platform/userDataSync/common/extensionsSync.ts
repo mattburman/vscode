@@ -517,7 +517,7 @@ export abstract class AbstractExtensionsInitializer extends AbstractInitializer 
 		return remoteUserData.syncData ? await parseAndMigrateExtensions(remoteUserData.syncData, this.extensionManagementService) : null;
 	}
 
-	async initialize({ ref, content }: IUserData): Promise<void> {
+	override async initialize({ ref, content }: IUserData): Promise<void> {
 		if (!content) {
 			this.logService.info('Remote content does not exist.', this.resource);
 			return;
@@ -533,16 +533,6 @@ export abstract class AbstractExtensionsInitializer extends AbstractInitializer 
 		} catch (error) {
 			this.logService.error(error);
 		}
-	}
-
-	async doInitialize(remoteUserData: IRemoteUserData): Promise<void> {
-		const remoteExtensions: ISyncExtension[] | null = remoteUserData.syncData ? await parseAndMigrateExtensions(remoteUserData.syncData, this.extensionManagementService) : null;
-		if (!remoteExtensions) {
-			this.logService.info('Skipping initializing extensions because remote extensions does not exist.');
-			return;
-		}
-
-		await this.initializeRemoteExtensions(remoteExtensions);
 	}
 
 	protected generatePreview(remoteExtensions: ISyncExtension[], localExtensions: ILocalExtension[]): IExtensionsInitializerPreviewResult {

@@ -91,7 +91,7 @@ class RemoteTerminalVariableResolverService extends AbstractVariableResolverServ
 			getLineNumber: (): string | undefined => {
 				return resolvedVariables.lineNumber;
 			}
-		}, undefined, env);
+		}, undefined, Promise.resolve(env));
 
 		// setup the workspace folder data structure
 		folders.forEach(folder => {
@@ -176,6 +176,15 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		if (command === '$attachToProcess') {
 			return;
 		}
+		if (command === '$reduceConnectionGraceTime') {
+			return;
+		}
+		if (command === '$getShellEnvironment') {
+			return { ...process.env };
+		}
+		if (command === '$getDefaultSystemShell') {
+			return '/bin/bash';
+		}
 		if (command === '$listProcesses') {
 			try {
 				const state = await this.sync();
@@ -205,6 +214,14 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 				throw new Error('terminal not found');
 			}
 			return terminalProcess.input(data);
+		}
+		if (command === '$processBinary') {
+			const [id, data]: [number, string] = arg;
+			const terminalProcess = this.terminalProcesses.get(id);
+			if (!terminalProcess) {
+				throw new Error('terminal not found');
+			}
+			return terminalProcess.processBinary(data);
 		}
 		if (command === '$acknowledgeDataEvent') {
 			const [id, charCount]: [number, number] = arg;
@@ -351,14 +368,13 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			args.activeFileResource ? URI.revive(args.activeFileResource) : undefined,
 			procesEnv
 		);
-		const variableResolver = terminalEnvironment.createVariableResolver(lastActiveWorkspace, configurationResolverService);
+		const variableResolver = terminalEnvironment.createVariableResolver(lastActiveWorkspace, procesEnv, configurationResolverService);
 
 		// Merge in shell and args from settings
 		if (!shellLaunchConfig.executable) {
 			shellLaunchConfig.executable = terminalEnvironment.getDefaultShell(
 				key => args.configuration[key],
-				args.isWorkspaceShellAllowed,
-				getSystemShellSync(platform.platform, process.env as platform.IProcessEnvironment),
+				getSystemShellSync(platform.OS, process.env as platform.IProcessEnvironment),
 				process.env.hasOwnProperty('PROCESSOR_ARCHITEW6432'),
 				process.env.windir,
 				variableResolver,
@@ -367,7 +383,6 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			);
 			shellLaunchConfig.args = terminalEnvironment.getDefaultShellArgs(
 				key => args.configuration[key],
-				args.isWorkspaceShellAllowed,
 				false,
 				variableResolver,
 				this.logService
@@ -403,7 +418,6 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			shellLaunchConfig,
 			envFromConfig,
 			variableResolver,
-			args.isWorkspaceShellAllowed,
 			product.version,
 			args.configuration['terminal.integrated.detectLocale'] || 'auto',
 			baseEnv
@@ -568,7 +582,8 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 					title: terminal.syncState.title,
 					workspaceId: terminal.workspaceId,
 					workspaceName: terminal.workspaceName,
-					isOrphan: true
+					isOrphan: true,
+					icon: undefined
 				});
 			}
 		}
