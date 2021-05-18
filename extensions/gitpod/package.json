@@ -276,8 +276,8 @@
     "@types/ws": "^7.2.6"
   },
   "dependencies": {
-    "@gitpod/gitpod-protocol": "aledbf-grpcjs",
-    "@gitpod/supervisor-api-grpc": "aledbf-grpcjs",
+    "@gitpod/gitpod-protocol": "main",
+    "@gitpod/supervisor-api-grpc": "main",
     "@grpc/grpc-js": "latest",
     "bufferutil": "^4.0.1",
     "node-fetch": "^2.6.1",

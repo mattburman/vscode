@@ -102,7 +102,7 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 			request.setShellArgsList(this.openOptions.shellArgs);
 			request.setWorkdir(this.initialCwd);
 			for (const name in this.openOptions.env) {
-				request.getEnvMap().set(name, this.openOptions.env[name]);
+				request.getEnvMap().set(name, this.openOptions.env[name] || '');
 			}
 			request.getAnnotationsMap().set('workspaceId', this.workspaceId);
 			request.getAnnotationsMap().set('workspaceName', this.workspaceName);
@@ -263,17 +263,35 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 	}
 
 	input(data: string): void {
+		this.doInput(data, 'utf8');
+	}
+
+	async processBinary(data: string): Promise<void> {
+		return this.doInput(data, 'binary');
+	}
+
+	protected doInput(data: string, encoding: BufferEncoding): Promise<void> {
 		if (this['_isDisposed'] || !this.alias) {
-			return;
+			return Promise.reject();
 		}
 		const request = new WriteTerminalRequest();
 		request.setAlias(this.alias);
-		request.setStdin(Buffer.from(data));
-		terminalServiceClient.write(request, supervisorMetadata, { deadline: Date.now() + supervisorDeadlines.short }, e => {
+		request.setStdin(Buffer.from(data, encoding));
+		let resolve: () => void;
+		let reject: (reason: any) => void;
+		const result = new Promise<void>((res, rej) => {
+			reject = rej;
+			resolve = res;
+		});
+		terminalServiceClient.write(request, supervisorMetadata, { deadline: Date.now() + supervisorDeadlines.short }, (e, resp) => {
 			if (e && e.code !== status.NOT_FOUND) {
 				this.logService.error(`code server: ${this.id}:${this.alias} terminal: write failed:`, e);
+				reject(e);
+			} else {
+				resolve();
 			}
 		});
+		return result;
 	}
 
 	resize(cols: number, rows: number): void {
