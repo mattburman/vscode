@@ -183,7 +183,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			return { ...process.env };
 		}
 		if (command === '$getDefaultSystemShell') {
-			return '/bin/bash';
+			return process.env['SHELL'] || '/bin/bash';
 		}
 		if (command === '$listProcesses') {
 			try {
