@@ -583,7 +583,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 					workspaceId: terminal.workspaceId,
 					workspaceName: terminal.workspaceName,
 					isOrphan: true,
-					icon: undefined
+					icon: 'terminal'
 				});
 			}
 		}
