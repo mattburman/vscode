@@ -436,7 +436,8 @@ export abstract class BaseExtHostTerminalService extends Disposable implements I
 			shellArgs: shellLaunchConfigDto.args,
 			cwd: typeof shellLaunchConfigDto.cwd === 'string' ? shellLaunchConfigDto.cwd : URI.revive(shellLaunchConfigDto.cwd),
 			env: shellLaunchConfigDto.env,
-			hideFromUser: shellLaunchConfigDto.hideFromUser
+			hideFromUser: shellLaunchConfigDto.hideFromUser,
+			icon: shellLaunchConfigDto.icon
 		};
 		const terminal = new ExtHostTerminal(this._proxy, id, creationOptions, name);
 		this._terminals.push(terminal);

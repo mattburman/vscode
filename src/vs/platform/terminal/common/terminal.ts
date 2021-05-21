@@ -305,6 +305,7 @@ export interface IShellLaunchConfigDto {
 	cwd?: string | UriComponents;
 	env?: ITerminalEnvironment;
 	hideFromUser?: boolean;
+	icon?: string;
 }
 
 export interface ITerminalEnvironment {

@@ -66,6 +66,7 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 		readonly workspaceId: string,
 		readonly workspaceName: string,
 		readonly shouldPersist: boolean,
+		readonly icon: string | undefined,
 		private readonly logService: ILogService,
 		private readonly openOptions?: OpenSupervisorTerminalProcessOptions
 	) {

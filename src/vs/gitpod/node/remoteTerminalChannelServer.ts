@@ -137,6 +137,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		workspaceId: string,
 		workspaceName: string,
 		shouldPersistTerminal: boolean,
+		icon: string | undefined,
 		openOptions?: OpenSupervisorTerminalProcessOptions
 	): SupervisorTerminalProcess {
 		const terminalProcess = new SupervisorTerminalProcess(
@@ -145,6 +146,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			workspaceId,
 			workspaceName,
 			shouldPersistTerminal,
+			icon,
 			this.logService,
 			openOptions
 		);
@@ -353,7 +355,8 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			executable: shellLaunchConfigDto.executable,
 			args: shellLaunchConfigDto.args,
 			cwd: typeof shellLaunchConfigDto.cwd === 'string' ? shellLaunchConfigDto.cwd : URI.revive(shellLaunchConfigDto.cwd),
-			env: shellLaunchConfigDto.env
+			env: shellLaunchConfigDto.env,
+			icon: shellLaunchConfigDto.icon
 		};
 
 		let lastActiveWorkspace: IWorkspaceFolder | undefined;
@@ -440,6 +443,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			args.workspaceId,
 			args.workspaceName,
 			args.shouldPersistTerminal,
+			shellLaunchConfig.icon,
 			{
 				shell: shellLaunchConfig.executable!,
 				shellArgs: typeof shellLaunchConfig.args === 'string' ? [shellLaunchConfig.args] : shellLaunchConfig.args || [],
@@ -560,7 +564,8 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 						terminal.getInitialWorkdir(),
 						workspaceId,
 						workspaceName,
-						shouldPersistTerminal
+						shouldPersistTerminal,
+						'gear'
 					);
 
 					terminalProcess.syncState = terminal.toObject();
@@ -583,7 +588,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 					workspaceId: terminal.workspaceId,
 					workspaceName: terminal.workspaceName,
 					isOrphan: true,
-					icon: 'terminal'
+					icon: terminal.icon
 				});
 			}
 		}
