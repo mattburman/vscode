@@ -1210,13 +1210,9 @@ export function windowOpenNoOpener(url: string): void {
  * See https://mathiasbynens.github.io/rel-noopener/
  */
 export function windowOpenNoOpenerWithSuccess(url: string): boolean {
-	const newTab = window.open();
-	if (newTab) {
-		newTab.close();
-		window.open(url, '_blank', 'noopener');
-		return true;
-	}
-	return false;
+	// see https://github.com/gitpod-io/gitpod/issues/4266
+	window.open(url, '_blank', 'noopener');
+	return true;
 }
 
 export function animate(fn: () => void): IDisposable {
