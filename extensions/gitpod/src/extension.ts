@@ -249,12 +249,15 @@ export async function activate(context: vscode.ExtensionContext) {
 			super('' + portNumber);
 			this.localUrl = 'http://localhost:' + this.portNumber;
 		}
-		get externalUrl(): string | undefined {
+		openExternal() {
+			return vscode.env.openExternal(vscode.Uri.parse(this.localUrl));
+		}
+		get externalUrl(): string {
 			if (this.tunnel) {
 				const localAddress = typeof this.tunnel.localAddress === 'string' ? this.tunnel.localAddress : this.tunnel.localAddress.host + ':' + this.tunnel.localAddress.port;
 				return localAddress.startsWith('http') ? localAddress : `http://${localAddress}`;
 			}
-			return this.status?.exposed?.url;
+			return this.status?.exposed?.url || this.localUrl;
 		}
 		get remotePort(): number | undefined {
 			if (this.tunnel) {
@@ -532,15 +535,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('gitpod.ports.tunnelHost', async (port: GitpodWorkspacePort) =>
 		port.setTunnelVisibility(TunnelVisiblity.HOST)
 	));
-	context.subscriptions.push(vscode.commands.registerCommand('gitpod.ports.preview', (port: GitpodWorkspacePort) => {
-		openPreview(port);
-	}));
+	context.subscriptions.push(vscode.commands.registerCommand('gitpod.ports.preview', (port: GitpodWorkspacePort) =>
+		openPreview(port)
+	));
 	context.subscriptions.push(vscode.commands.registerCommand('gitpod.api.preview', (url: string) =>
 		previewUrl(url)
 	));
-	context.subscriptions.push(vscode.commands.registerCommand('gitpod.ports.openBrowser', (port: GitpodWorkspacePort) => {
-		vscode.env.openExternal(vscode.Uri.parse(port.externalUrl || port.localUrl));
-	}));
+	context.subscriptions.push(vscode.commands.registerCommand('gitpod.ports.openBrowser', (port: GitpodWorkspacePort) =>
+		port.openExternal()
+	));
 
 	const portsStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 	context.subscriptions.push(portsStatusBarItem);
@@ -599,12 +602,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		} else if (result === openAction) {
 			await openPreview(port);
 		} else if (result === openExternalAction) {
-			await vscode.env.openExternal(vscode.Uri.parse(port.externalUrl || port.localUrl));
+			await port.openExternal();
 		}
 	}
 	async function openPreview(port: GitpodWorkspacePort): Promise<void> {
-		const externalUrl = port.externalUrl || port.localUrl;
-		await previewUrl(externalUrl.toString());
+		await previewUrl(port.externalUrl.toString());
 	}
 	async function previewUrl(url: string): Promise<void> {
 		await vscode.commands.executeCommand('simpleBrowser.api.open', url, {
@@ -618,7 +620,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		if (port.status.exposed.onExposed === OnPortExposedAction.OPEN_BROWSER) {
-			vscode.env.openExternal(vscode.Uri.parse(port.status.exposed.url));
+			port.openExternal();
 			return;
 		}
 

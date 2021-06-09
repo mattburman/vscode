@@ -421,7 +421,7 @@ async function doStart(): Promise<IDisposable> {
 				host: 'localhost',
 				port: status.remotePort
 			};
-			this.localAddress = 'localhost:' + status.localPort;
+			this.localAddress = 'http://localhost:' + status.localPort;
 			this.public = status.visibility === TunnelVisiblity.NETWORK;
 		}
 		async dispose(close = true): Promise<void> {
