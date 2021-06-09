@@ -420,7 +420,7 @@ async function main(): Promise<void> {
 				const pendingUser = extensionsInstalled.then(() => ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, environmentService.extensionsPath, false, false, translations), logger));
 				let pendingDev: Promise<IExtensionDescription[]>[] = [];
 				if (args.extensionDevelopmentPath) {
-					pendingDev = args.extensionDevelopmentPath.map(devPath => ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, URI.revive(devPath).fsPath, false, true, translations), logger));
+					pendingDev = args.extensionDevelopmentPath.map(devPath => ExtensionScanner.scanOneOrMultipleExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, URI.revive(devPath).fsPath, false, true, translations), logger));
 				}
 				const result: IExtensionDescription[] = [];
 				const skipExtensions = new Set<string>(args.skipExtensions.map(ExtensionIdentifier.toKey));
