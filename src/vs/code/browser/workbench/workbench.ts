@@ -6,6 +6,7 @@
 /// <reference types='@gitpod/gitpod-protocol/lib/typings/globals'/>
 
 import type { IDEFrontendState } from '@gitpod/gitpod-protocol/lib/ide-frontend-service';
+import type { Status, TunnelStatus } from '@gitpod/local-app-api-grpcweb';
 import { isStandalone } from 'vs/base/browser/browser';
 import { Emitter, Event } from 'vs/base/common/event';
 import { Disposable, DisposableStore, IDisposable } from 'vs/base/common/lifecycle';
@@ -20,8 +21,6 @@ import { extractLocalHostUriMetaDataForPortMapping, isLocalhost } from 'vs/platf
 import { ColorScheme } from 'vs/platform/theme/common/theme';
 import { isFolderToOpen, isWorkspaceToOpen } from 'vs/platform/windows/common/windows';
 import { commands, create, ICommand, ICredentialsProvider, IHomeIndicator, ITunnel, ITunnelProvider, IWorkspace, IWorkspaceProvider } from 'vs/workbench/workbench.web.api';
-import { grpc } from '@improbable-eng/grpc-web';
-import { LocalAppClient, TunnelStatusRequest, TunnelStatus, TunnelVisiblity, Status } from '@gitpod/local-app-api-grpcweb';
 
 interface ICredential {
 	service: string;
@@ -404,6 +403,10 @@ async function doStart(): Promise<IDisposable> {
 	if (_state as any === 'terminated') {
 		return Disposable.None;
 	}
+
+	// load grpc-web before local-app, see https://github.com/gitpod-io/gitpod/issues/4448
+	const { grpc } = await import('@improbable-eng/grpc-web');
+	const { LocalAppClient, TunnelStatusRequest, TunnelVisiblity } = await import('@gitpod/local-app-api-grpcweb');
 
 	//#region tunnels
 	class Tunnel implements ITunnel {
