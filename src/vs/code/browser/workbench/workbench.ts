@@ -17,6 +17,7 @@ import { localize } from 'vs/nls';
 import { parseLogLevel } from 'vs/platform/log/common/log';
 import product from 'vs/platform/product/common/product';
 import { defaultWebSocketFactory } from 'vs/platform/remote/browser/browserSocketFactory';
+import { RemoteAuthorityResolverError, RemoteAuthorityResolverErrorCode } from 'vs/platform/remote/common/remoteAuthorityResolver';
 import { extractLocalHostUriMetaDataForPortMapping, isLocalhost } from 'vs/platform/remote/common/tunnel';
 import { ColorScheme } from 'vs/platform/theme/common/theme';
 import { isFolderToOpen, isWorkspaceToOpen } from 'vs/platform/windows/common/windows';
@@ -614,7 +615,33 @@ async function doStart(): Promise<IDisposable> {
 				const codeServerUrl = new URL(url);
 				codeServerUrl.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 				codeServerUrl.port = remotePort;
-				return defaultWebSocketFactory.create(codeServerUrl.toString());
+				const socket = defaultWebSocketFactory.create(codeServerUrl.toString());
+				const onError = new Emitter<RemoteAuthorityResolverError>();
+				socket.onError(e => {
+					if (_state as any === 'terminated') {
+						// if workspace stopped then don't try to reconnect, regardless how websocket was closed
+						e = new RemoteAuthorityResolverError('workspace stopped', RemoteAuthorityResolverErrorCode.NotAvailable, e);
+					}
+					// otherwise reconnect always
+					if (!(e instanceof RemoteAuthorityResolverError)) {
+						// by default VS Code does not try to reconnect if the web socket is closed clean:
+						// https://github.com/gitpod-io/vscode/blob/7bb129c76b6e95b35758e3e3bc5464ed6ec6397c/src/vs/platform/remote/browser/browserSocketFactory.ts#L150-L152
+						// override it as a temporary network error
+						e = new RemoteAuthorityResolverError('WebSocket closed', RemoteAuthorityResolverErrorCode.TemporarilyNotAvailable, e);
+					}
+					onError.fire(e);
+				});
+				return {
+					onData: socket.onData,
+					onOpen: socket.onOpen,
+					onClose: socket.onClose,
+					onError: onError.event,
+					send: data => socket.send(data),
+					close: () => {
+						socket.close();
+						onError.dispose();
+					}
+				};
 			}
 		},
 		workspaceProvider,
