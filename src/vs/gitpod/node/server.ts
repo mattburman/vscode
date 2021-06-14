@@ -883,7 +883,7 @@ async function main(): Promise<void> {
 								dispose();
 							}, ProtocolConstants.ReconnectionGraceTime);
 							const shortGraceTimeReconnection = new RunOnceScheduler(() => {
-								logService.info(`[${token}] Management connection expired after ${ProtocolConstants.ReconnectionGraceTime}ms (short grace).`);
+								logService.info(`[${token}] Management connection expired after ${ProtocolConstants.ReconnectionShortGraceTime}ms (short grace).`);
 								dispose();
 							}, ProtocolConstants.ReconnectionShortGraceTime);
 							client.management = { protocol, graceTimeReconnection, shortGraceTimeReconnection };
@@ -981,6 +981,7 @@ async function main(): Promise<void> {
 									socket.end();
 									extensionHost.kill();
 									client.extensionHost = undefined;
+									logService.info(`[${token}] Extension host is disconnected.`);
 								}
 
 								extensionHost.on('error', err => {
