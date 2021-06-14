@@ -57,7 +57,7 @@
     "extensions-ci": "node --max_old_space_size=4095 ./node_modules/gulp/bin/gulp.js extensions-ci"
   },
   "dependencies": {
-    "@gitpod/local-app-api-grpcweb": "ak-vscode-tunnel-provider",
+    "@gitpod/local-app-api-grpcweb": "main",
     "@gitpod/supervisor-api-grpc": "main",
     "applicationinsights": "1.0.8",
     "chokidar": "3.5.1",

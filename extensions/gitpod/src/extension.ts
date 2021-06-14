@@ -197,12 +197,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			await vscode.window.showErrorMessage(`Cannot capture workspace snapshot: ${err.toString()}`);
 		}
 	}));
-	const communityStatusBarItem = vscode.window.createStatusBarItem({
-		id: 'gitpod.community',
-		name: 'Chat with us on Discourse',
-		alignment: vscode.StatusBarAlignment.Right,
-		priority: -100
-	});
+	const communityStatusBarItem = vscode.window.createStatusBarItem('gitpod.community', vscode.StatusBarAlignment.Right, -100);
+	communityStatusBarItem.name = 'Chat with us on Discourse';
 	context.subscriptions.push(communityStatusBarItem);
 	communityStatusBarItem.text = '$(comment-discussion)';
 	communityStatusBarItem.tooltip = 'Chat with us on Discourse';
@@ -216,12 +212,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		const listener = await pendingInstanceListener;
-		const extendTimeoutStatusBarItem = vscode.window.createStatusBarItem({
-			id: 'gitpod.extendTimeout',
-			name: 'Click to extend the workspace timeout.',
-			alignment: vscode.StatusBarAlignment.Right,
-			priority: -100
-		});
+		const extendTimeoutStatusBarItem = vscode.window.createStatusBarItem('gitpod.extendTimeout', vscode.StatusBarAlignment.Right, -100);
+		extendTimeoutStatusBarItem.name = 'Click to extend the workspace timeout.';
 		context.subscriptions.push(extendTimeoutStatusBarItem);
 		extendTimeoutStatusBarItem.text = '$(watch)';
 		extendTimeoutStatusBarItem.command = 'gitpod.ExtendTimeout';
@@ -676,7 +668,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			accessToken: data.accessToken
 		};
 	}
-	function hasScopes(session: vscode.AuthenticationSession, scopes?: string[]): boolean {
+	function hasScopes(session: vscode.AuthenticationSession, scopes?: readonly string[]): boolean {
 		return !scopes || scopes.every(scope => session.scopes.indexOf(scope) !== -1);
 	}
 	//#endregion
@@ -773,7 +765,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			};
 		}
 
-		async function loginGitHub(scopes?: string[]): Promise<vscode.AuthenticationSession> {
+		async function loginGitHub(scopes?: readonly string[]): Promise<vscode.AuthenticationSession> {
 			const getTokenRequest = new GetTokenRequest();
 			getTokenRequest.setKind('git');
 			getTokenRequest.setHost('github.com');

@@ -20,7 +20,7 @@ import { OpenSupervisorTerminalProcessOptions, SupervisorTerminalProcess } from 
 import { ILogService } from 'vs/platform/log/common/log';
 import product from 'vs/platform/product/common/product';
 import { RemoteAgentConnectionContext } from 'vs/platform/remote/common/remoteAgentEnvironment';
-import { IProcessDataEvent, IRawTerminalTabLayoutInfo, IShellLaunchConfig, ITerminalLaunchError, ITerminalsLayoutInfo, ITerminalTabLayoutInfoById } from 'vs/platform/terminal/common/terminal';
+import { IProcessDataEvent, IRawTerminalTabLayoutInfo, IShellLaunchConfig, ITerminalLaunchError, ITerminalsLayoutInfo, ITerminalTabLayoutInfoById, TitleEventSource } from 'vs/platform/terminal/common/terminal';
 import { IGetTerminalLayoutInfoArgs, IPtyHostProcessReplayEvent, ISetTerminalLayoutInfoArgs } from 'vs/platform/terminal/common/terminalProcess';
 import { IWorkspaceFolder } from 'vs/platform/workspace/common/workspace';
 import { IEnvironmentVariableCollection } from 'vs/workbench/contrib/terminal/common/environmentVariable';
@@ -29,7 +29,6 @@ import { deserializeEnvironmentVariableCollection } from 'vs/workbench/contrib/t
 import { ICreateTerminalProcessArguments, ICreateTerminalProcessResult, IWorkspaceFolderData } from 'vs/workbench/contrib/terminal/common/remoteTerminalChannel';
 import { IRemoteTerminalAttachTarget } from 'vs/workbench/contrib/terminal/common/terminal';
 import * as terminalEnvironment from 'vs/workbench/contrib/terminal/common/terminalEnvironment';
-import { getMainProcessParentEnv } from 'vs/workbench/contrib/terminal/node/terminalEnvironment';
 import { AbstractVariableResolverService } from 'vs/workbench/services/configurationResolver/common/variableResolver';
 
 type TerminalOpenMode = 'split-top' | 'split-left' | 'split-right' | 'split-bottom' | 'tab-before' | 'tab-after';
@@ -413,7 +412,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		shellLaunchConfig.cwd = initialCwd;
 
 		const envFromConfig = args.configuration['terminal.integrated.env.linux'];
-		const baseEnv = args.configuration['terminal.integrated.inheritEnv'] ? procesEnv : await getMainProcessParentEnv(procesEnv);
+		const baseEnv = procesEnv;
 		const env = terminalEnvironment.createTerminalEnvironment(
 			shellLaunchConfig,
 			envFromConfig,
@@ -580,10 +579,13 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 					cwd: terminal.syncState.currentWorkdir,
 					pid: terminal.syncState.pid,
 					title: terminal.syncState.title,
+					titleSource: TitleEventSource.Process,
 					workspaceId: terminal.workspaceId,
 					workspaceName: terminal.workspaceName,
 					isOrphan: true,
-					icon: 'terminal'
+					// TODO
+					icon: undefined,
+					color: undefined
 				});
 			}
 		}
