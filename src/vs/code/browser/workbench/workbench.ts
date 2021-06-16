@@ -265,8 +265,7 @@ async function doStart(): Promise<IDisposable> {
 		return Disposable.None;
 	}
 
-	const remotePort = location.protocol === 'https:' ? '443' : '80';
-	const remoteAuthority = window.location.host + ':' + remotePort;
+	const remoteAuthority = window.location.host;
 
 	const webWorkerExtensionHostEndpoint = new URL(document.baseURI);
 	webWorkerExtensionHostEndpoint.host = 'extensions-' + webWorkerExtensionHostEndpoint.host;
@@ -612,9 +611,11 @@ async function doStart(): Promise<IDisposable> {
 		webviewEndpoint: webviewEndpoint.toString(),
 		webSocketFactory: {
 			create: url => {
+				if (_state as any === 'terminated') {
+					throw new RemoteAuthorityResolverError('workspace stopped', RemoteAuthorityResolverErrorCode.NotAvailable);
+				}
 				const codeServerUrl = new URL(url);
 				codeServerUrl.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-				codeServerUrl.port = remotePort;
 				const socket = defaultWebSocketFactory.create(codeServerUrl.toString());
 				const onError = new Emitter<RemoteAuthorityResolverError>();
 				socket.onError(e => {
@@ -645,6 +646,14 @@ async function doStart(): Promise<IDisposable> {
 			}
 		},
 		workspaceProvider,
+		resourceUriProvider: uri => {
+			return URI.from({
+				scheme: 'https',
+				authority: remoteAuthority,
+				path: `/vscode-remote-resource`,
+				query: `path=${encodeURIComponent(uri.path)}`
+			});
+		},
 		resolveExternalUri: async (uri) => {
 			const localhost = extractLocalHostUriMetaDataForPortMapping(uri);
 			if (!localhost) {

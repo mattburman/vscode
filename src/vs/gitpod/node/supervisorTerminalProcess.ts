@@ -2,7 +2,7 @@
  *  Copyright (c) Typefox. All rights reserved.
  *--------------------------------------------------------------------------------------------*/
 
-import { GetTerminalRequest, ListenTerminalRequest, ListenTerminalResponse, OpenTerminalRequest, SetTerminalSizeRequest, ShutdownTerminalRequest, Terminal, TerminalSize, WriteTerminalRequest } from '@gitpod/supervisor-api-grpc/lib/terminal_pb';
+import { GetTerminalRequest, ListenTerminalRequest, ListenTerminalResponse, OpenTerminalRequest, SetTerminalSizeRequest, SetTerminalTitleRequest, ShutdownTerminalRequest, Terminal, TerminalSize, UpdateTerminalAnnotationsRequest, WriteTerminalRequest } from '@gitpod/supervisor-api-grpc/lib/terminal_pb';
 import { status } from '@grpc/grpc-js';
 import * as util from 'util';
 import { Emitter, Event } from 'vs/base/common/event';
@@ -10,7 +10,7 @@ import { DisposableStore } from 'vs/base/common/lifecycle';
 import * as platform from 'vs/base/common/platform';
 import { supervisorDeadlines, supervisorMetadata, terminalServiceClient } from 'vs/gitpod/node/supervisor-client';
 import { ILogService } from 'vs/platform/log/common/log';
-import { ITerminalChildProcess, ITerminalLaunchError, TerminalShellType } from 'vs/platform/terminal/common/terminal';
+import { ITerminalChildProcess, ITerminalLaunchError, TerminalIcon, TerminalShellType } from 'vs/platform/terminal/common/terminal';
 import { TerminalDataBufferer } from 'vs/platform/terminal/common/terminalDataBuffering';
 import { IPtyHostProcessReplayEvent } from 'vs/platform/terminal/common/terminalProcess';
 import { TerminalRecorder } from 'vs/platform/terminal/common/terminalRecorder';
@@ -30,9 +30,9 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 
 	private exitCode: number | undefined;
 	private closeTimeout: any;
-	syncState: Terminal.AsObject | undefined;
+	syncState: Terminal | undefined;
 	get alias(): string | undefined {
-		return this.syncState?.alias;
+		return this.syncState?.getAlias();
 	}
 
 	private readonly _recorder = new TerminalRecorder(0, 0);
@@ -85,8 +85,8 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 
 	async start(): Promise<ITerminalLaunchError | undefined> {
 		if (this.syncState) {
-			this._onProcessReady.fire({ pid: this.syncState.pid, cwd: this.syncState.currentWorkdir });
-			this._onProcessTitleChanged.fire(this.syncState.title);
+			this._onProcessReady.fire({ pid: this.syncState.getPid(), cwd: this.syncState.getCurrentWorkdir() });
+			this._onProcessTitleChanged.fire(this.syncState.getTitle());
 			this.triggerReplay();
 			this.listen();
 			return undefined;
@@ -112,7 +112,7 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 			const response = await util.promisify(terminalServiceClient.open.bind(terminalServiceClient, request, supervisorMetadata, {
 				deadline: Date.now() + supervisorDeadlines.long
 			}))();
-			this.syncState = response.getTerminal()!.toObject();
+			this.syncState = response.getTerminal();
 			this.initialCwd = response.getTerminal()!.getCurrentWorkdir() || response.getTerminal()!.getInitialWorkdir();
 
 			this._onProcessReady.fire({ pid: response.getTerminal()!.getPid(), cwd: this.initialCwd });
@@ -362,6 +362,41 @@ export class SupervisorTerminalProcess extends DisposableStore implements ITermi
 	private triggerReplay(): void {
 		const event = this._recorder.generateReplayEvent();
 		this._onProcessReplay.fire(event);
+	}
+
+	setTitle(title: string): void {
+		if (this['_isDisposed'] || !this.alias) {
+			return;
+		}
+
+		const request = new SetTerminalTitleRequest();
+		request.setAlias(this.alias);
+		request.setTitle(title);
+		terminalServiceClient.setTitle(request, supervisorMetadata, { deadline: Date.now() + supervisorDeadlines.short }, e => {
+			if (e && e.code !== status.NOT_FOUND) {
+				this.logService.error(`code server: ${this.id}:${this.alias} terminal: rename failed:`, e);
+			}
+		});
+	}
+
+	setIcon(icon: TerminalIcon, color?: string): void {
+		if (this['_isDisposed'] || !this.alias) {
+			return;
+		}
+
+		const request = new UpdateTerminalAnnotationsRequest();
+		request.setAlias(this.alias);
+		request.getChangedMap().set('icon', JSON.stringify(icon));
+		if (color === undefined) {
+			request.getDeletedList().push('color');
+		} else {
+			request.getChangedMap().set('color', color);
+		}
+		terminalServiceClient.updateAnnotations(request, supervisorMetadata, { deadline: Date.now() + supervisorDeadlines.short }, e => {
+			if (e && e.code !== status.NOT_FOUND) {
+				this.logService.error(`code server: ${this.id}:${this.alias} terminal: update icon failed:`, e);
+			}
+		});
 	}
 
 }

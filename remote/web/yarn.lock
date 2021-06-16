@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@gitpod/local-app-api-grpcweb@ak-vscode-tunnel-provider":
-  version "0.1.5-ak-vscode-tunnel-provider.26"
-  resolved "https://registry.yarnpkg.com/@gitpod/local-app-api-grpcweb/-/local-app-api-grpcweb-0.1.5-ak-vscode-tunnel-provider.26.tgz#16c4b8561f348a4279324ba586f6231fedd762f5"
-  integrity sha512-Ng8KcIb0sv5vrOwmjsqeuLCw8TCiU0H/misLdUHxgyJI+gPa01Thfmu42fIF7XWGAqnycg+bkzgu07oN7yQOsg==
+"@gitpod/local-app-api-grpcweb@main":
+  version "0.1.5-main.943"
+  resolved "https://registry.yarnpkg.com/@gitpod/local-app-api-grpcweb/-/local-app-api-grpcweb-0.1.5-main.943.tgz#37d08d3d4336f86f816f2c1fc5503a5a4142e1e2"
+  integrity sha512-NJE0MXA0tZSUm5pl89OU14dm7qmuws65H4ci/VemiMcYQfB2Zh/CYqOwvb1dpp1RFd8zP03gptwWxesNxQzbEw==
   dependencies:
-    "@gitpod/supervisor-api-grpcweb" "0.1.5-ak-vscode-tunnel-provider.26"
+    "@gitpod/supervisor-api-grpcweb" "0.1.5-main.943"
     "@improbable-eng/grpc-web" "0.14.0"
     google-protobuf "^3.17.0"
 
-"@gitpod/supervisor-api-grpcweb@0.1.5-ak-vscode-tunnel-provider.26":
-  version "0.1.5-ak-vscode-tunnel-provider.26"
-  resolved "https://registry.yarnpkg.com/@gitpod/supervisor-api-grpcweb/-/supervisor-api-grpcweb-0.1.5-ak-vscode-tunnel-provider.26.tgz#c7103afd3a90bda7f5117eb5be6e410a98645d23"
-  integrity sha512-CbvXviDOavaLquMW180f+gWTPP0R42gKqif7iPGsmtV+Yt2Py56LnpMmbi/BjmbuAY9KCHae3dwXRwroY4nF1A==
+"@gitpod/supervisor-api-grpcweb@0.1.5-main.943":
+  version "0.1.5-main.943"
+  resolved "https://registry.yarnpkg.com/@gitpod/supervisor-api-grpcweb/-/supervisor-api-grpcweb-0.1.5-main.943.tgz#be7091e6b0c105f3143ac948784a6f955f8aa450"
+  integrity sha512-5P9u9FHb1Hn7gh9piyfmyR15JPFWU7FhsrPJ32VVyit8qnYEdkrnYALefTsKqdBIHrKc7bbPO23tIHxpzLO6UQ==
 
 "@improbable-eng/grpc-web@0.14.0":
   version "0.14.0"

@@ -3,7 +3,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { TaskStatus } from '@gitpod/supervisor-api-grpc/lib/status_pb';
-import { ListTerminalsRequest } from '@gitpod/supervisor-api-grpc/lib/terminal_pb';
+import { ListTerminalsRequest, TerminalTitleSource } from '@gitpod/supervisor-api-grpc/lib/terminal_pb';
 import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
@@ -17,11 +17,13 @@ import { getSystemShellSync } from 'vs/base/node/shell';
 import { IServerChannel } from 'vs/base/parts/ipc/common/ipc';
 import { supervisorDeadlines, supervisorMetadata, terminalServiceClient } from 'vs/gitpod/node/supervisor-client';
 import { OpenSupervisorTerminalProcessOptions, SupervisorTerminalProcess } from 'vs/gitpod/node/supervisorTerminalProcess';
+import { IConfigurationService } from 'vs/platform/configuration/common/configuration';
 import { ILogService } from 'vs/platform/log/common/log';
 import product from 'vs/platform/product/common/product';
 import { RemoteAgentConnectionContext } from 'vs/platform/remote/common/remoteAgentEnvironment';
-import { IProcessDataEvent, IRawTerminalTabLayoutInfo, IShellLaunchConfig, ITerminalLaunchError, ITerminalsLayoutInfo, ITerminalTabLayoutInfoById } from 'vs/platform/terminal/common/terminal';
+import { IProcessDataEvent, IRawTerminalTabLayoutInfo, IRequestResolveVariablesEvent, IShellLaunchConfig, ITerminalLaunchError, ITerminalsLayoutInfo, ITerminalTabLayoutInfoById, TerminalIcon, TitleEventSource } from 'vs/platform/terminal/common/terminal';
 import { IGetTerminalLayoutInfoArgs, IPtyHostProcessReplayEvent, ISetTerminalLayoutInfoArgs } from 'vs/platform/terminal/common/terminalProcess';
+import { detectAvailableProfiles } from 'vs/platform/terminal/node/terminalProfiles';
 import { IWorkspaceFolder } from 'vs/platform/workspace/common/workspace';
 import { IEnvironmentVariableCollection } from 'vs/workbench/contrib/terminal/common/environmentVariable';
 import { MergedEnvironmentVariableCollection } from 'vs/workbench/contrib/terminal/common/environmentVariableCollection';
@@ -29,7 +31,6 @@ import { deserializeEnvironmentVariableCollection } from 'vs/workbench/contrib/t
 import { ICreateTerminalProcessArguments, ICreateTerminalProcessResult, IWorkspaceFolderData } from 'vs/workbench/contrib/terminal/common/remoteTerminalChannel';
 import { IRemoteTerminalAttachTarget } from 'vs/workbench/contrib/terminal/common/terminal';
 import * as terminalEnvironment from 'vs/workbench/contrib/terminal/common/terminalEnvironment';
-import { getMainProcessParentEnv } from 'vs/workbench/contrib/terminal/node/terminalEnvironment';
 import { AbstractVariableResolverService } from 'vs/workbench/services/configurationResolver/common/variableResolver';
 
 type TerminalOpenMode = 'split-top' | 'split-left' | 'split-right' | 'split-bottom' | 'tab-before' | 'tab-after';
@@ -125,10 +126,13 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 	readonly onProcessReplay = this._onProcessReplay.event;
 	private readonly _onProcessTitleChanged = new Emitter<{ id: number, event: string }>();
 	readonly onProcessTitleChanged = this._onProcessTitleChanged.event;
+	private readonly _onPtyHostRequestResolveVariables = new Emitter<IRequestResolveVariablesEvent>();
+	readonly onPtyHostRequestResolveVariables = this._onPtyHostRequestResolveVariables.event;
 
 	constructor(
 		private rawURITransformerFactory: (remoteAuthority: string) => IRawURITransformer,
-		private logService: ILogService,
+		private readonly logService: ILogService,
+		private readonly configurationService: IConfigurationService,
 		private synchingTasks: Promise<Map<string, TaskStatus>>
 	) { }
 
@@ -179,11 +183,23 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		if (command === '$reduceConnectionGraceTime') {
 			return;
 		}
-		if (command === '$getShellEnvironment') {
+		if (command === '$getEnvironment') {
 			return { ...process.env };
 		}
 		if (command === '$getDefaultSystemShell') {
 			return process.env['SHELL'] || '/bin/bash';
+		}
+		if (command === '$getProfiles') {
+			const [profiles, defaultProfile, includeDetectedProfiles]: [unknown, unknown, boolean] = arg;
+			return detectAvailableProfiles(profiles, defaultProfile, includeDetectedProfiles, this.configurationService, undefined, this.logService, this._resolveVariables.bind(this));
+		}
+		if (command === '$acceptPtyHostResolvedVariables') {
+			const [id, resolved]: [number, string[]] = arg;
+			return this.acceptPtyHostResolvedVariables(id, resolved);
+		}
+		if (command === '$getWslPath') {
+			const [original]: [string] = arg;
+			return original;
 		}
 		if (command === '$listProcesses') {
 			try {
@@ -285,6 +301,16 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 				return [];
 			}
 		}
+		if (command === '$updateTitle') {
+			const [id, title]: [number, string] = arg;
+			this.terminalProcesses.get(id)?.setTitle(title);
+			return;
+		}
+		if (command === '$updateIcon') {
+			const [id, icon, color]: [number, TerminalIcon, string] = arg;
+			this.terminalProcesses.get(id)?.setIcon(icon, color);
+			return;
+		}
 		this.logService.error('Unknown command: RemoteTerminalChannel.' + command);
 		throw new Error('Unknown command: RemoteTerminalChannel.' + command);
 	}
@@ -301,6 +327,9 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		}
 		if (event === '$onPtyHostResponsiveEvent') {
 			return Event.None;
+		}
+		if (event === '$onPtyHostRequestResolveVariablesEvent') {
+			return this._onPtyHostRequestResolveVariables.event;
 		}
 		if (event === '$onProcessDataEvent') {
 			return this._onProcessData.event;
@@ -341,6 +370,25 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		}
 		this.logService.error('Unknown event: RemoteTerminalChannel.' + event);
 		throw new Error('Unknown event: RemoteTerminalChannel.' + event);
+	}
+
+	private lastResolveVariablesRequestId = 0;
+	private _pendingResolveVariablesRequests: Map<number, (resolved: string[]) => void> = new Map();
+	private _resolveVariables(text: string[]): Promise<string[]> {
+		return new Promise<string[]>(resolve => {
+			const id = ++this.lastResolveVariablesRequestId;
+			this._pendingResolveVariablesRequests.set(id, resolve);
+			this._onPtyHostRequestResolveVariables.fire({ id, originalText: text });
+		});
+	}
+	async acceptPtyHostResolvedVariables(id: number, resolved: string[]) {
+		const request = this._pendingResolveVariablesRequests.get(id);
+		if (request) {
+			request(resolved);
+			this._pendingResolveVariablesRequests.delete(id);
+		} else {
+			this.logService.warn(`Resolved variables received without matching request ${id}`);
+		}
 	}
 
 	private async createProcess(ctx: RemoteAgentConnectionContext, arg: any): Promise<ICreateTerminalProcessResult> {
@@ -413,7 +461,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 		shellLaunchConfig.cwd = initialCwd;
 
 		const envFromConfig = args.configuration['terminal.integrated.env.linux'];
-		const baseEnv = args.configuration['terminal.integrated.inheritEnv'] ? procesEnv : await getMainProcessParentEnv(procesEnv);
+		const baseEnv = procesEnv;
 		const env = terminalEnvironment.createTerminalEnvironment(
 			shellLaunchConfig,
 			envFromConfig,
@@ -553,7 +601,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 				if (id) {
 					const terminalProcess = this.terminalProcesses.get(id);
 					if (terminalProcess) {
-						terminalProcess.syncState = terminal.toObject();
+						terminalProcess.syncState = terminal;
 					}
 				} else {
 					const terminalProcess = this.createTerminalProcess(
@@ -563,7 +611,7 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 						shouldPersistTerminal
 					);
 
-					terminalProcess.syncState = terminal.toObject();
+					terminalProcess.syncState = terminal;
 					this.attachTerminalProcess(terminalProcess);
 				}
 			}
@@ -575,15 +623,26 @@ export class RemoteTerminalChannelServer implements IServerChannel<RemoteAgentCo
 			if (terminal.syncState && (!arg || (
 				arg.workspaceId === terminal.workspaceId || (terminal.alias && tasks.has(terminal.alias)))
 			)) {
+				let icon: TerminalIcon | undefined;
+				try {
+					const iconAnnotation = terminal.syncState.getAnnotationsMap().get('icon');
+					if (iconAnnotation) {
+						icon = JSON.parse(iconAnnotation);
+					}
+				} catch { }
+				const color = terminal.syncState.getAnnotationsMap().get('color');
+
 				terminals.set(terminal.id, {
 					id: terminal.id,
-					cwd: terminal.syncState.currentWorkdir,
-					pid: terminal.syncState.pid,
-					title: terminal.syncState.title,
+					cwd: terminal.syncState.getCurrentWorkdir(),
+					pid: terminal.syncState.getPid(),
+					title: terminal.syncState.getTitle(),
+					titleSource: terminal.syncState.getTitleSource() === TerminalTitleSource.API ? TitleEventSource.Api : TitleEventSource.Process,
 					workspaceId: terminal.workspaceId,
 					workspaceName: terminal.workspaceName,
 					isOrphan: true,
-					icon: 'terminal'
+					icon,
+					color
 				});
 			}
 		}

@@ -211,7 +211,9 @@ const workerReady = new Promise(async (resolve, reject) => {
 		return reject(new Error('Service Workers are not enabled in browser. Webviews will not work.'));
 	}
 
-	const swPath = `service-worker.js${self.location.search}`;
+	const swParams = new URLSearchParams(self.location.search);
+	const resourceBaseAuthority = swParams.get('vscode-resource-base-authority');
+	const swPath = `service-worker.js?vscode-resource-base-authority=${encodeURIComponent(resourceBaseAuthority)}`;
 
 	navigator.serviceWorker.register(swPath).then(
 		async registration => {

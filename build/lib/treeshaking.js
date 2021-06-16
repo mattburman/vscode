@@ -477,9 +477,6 @@ function markNodes(ts, languageService, options) {
     }
 }
 function nodeIsInItsOwnDeclaration(nodeSourceFile, node, symbol) {
-    if (!symbol.declarations) {
-        return false;
-    }
     for (let i = 0, len = symbol.declarations.length; i < len; i++) {
         const declaration = symbol.declarations[i];
         const declarationSourceFile = declaration.getSourceFile();

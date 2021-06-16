@@ -390,7 +390,7 @@ async function main(): Promise<void> {
 				// see scanSingleExtension in src/vs/workbench/services/extensions/electron-browser/cachedExtensionScanner.ts
 				// TODO: read built nls file
 				const translations = {};
-				const input = new ExtensionScannerInput(product.version, product.commit, args.language, devMode, URI.revive(args.extensionLocation).fsPath, args.isBuiltin, false, translations);
+				const input = new ExtensionScannerInput(product.version, product.date, product.commit, args.language, devMode, URI.revive(args.extensionLocation).fsPath, args.isBuiltin, false, translations);
 				const extension = await ExtensionScanner.scanSingleExtension(input, logService);
 				if (!extension) {
 					return undefined;
@@ -404,10 +404,10 @@ async function main(): Promise<void> {
 				// see _scanInstalledExtensions in src/vs/workbench/services/extensions/electron-browser/cachedExtensionScanner.ts
 				// TODO: read built nls file
 				const translations = {};
-				let pendingSystem = ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, systemExtensionRoot, true, false, translations), logger);
+				let pendingSystem = ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.date, product.commit, args.language, devMode, systemExtensionRoot, true, false, translations), logger);
 				const builtInExtensions = product.builtInExtensions;
 				if (devMode && builtInExtensions && builtInExtensions.length) {
-					pendingSystem = ExtensionScanner.mergeBuiltinExtensions(pendingSystem, ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, extraDevSystemExtensionsRoot, true, false, translations), logger, {
+					pendingSystem = ExtensionScanner.mergeBuiltinExtensions(pendingSystem, ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.date, product.commit, args.language, devMode, extraDevSystemExtensionsRoot, true, false, translations), logger, {
 						resolveExtensions: () => {
 							const result: IExtensionReference[] = [];
 							for (const extension of builtInExtensions) {
@@ -417,10 +417,10 @@ async function main(): Promise<void> {
 						}
 					}));
 				}
-				const pendingUser = extensionsInstalled.then(() => ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, environmentService.extensionsPath, false, false, translations), logger));
+				const pendingUser = extensionsInstalled.then(() => ExtensionScanner.scanExtensions(new ExtensionScannerInput(product.version, product.date, product.commit, args.language, devMode, environmentService.extensionsPath, false, false, translations), logger));
 				let pendingDev: Promise<IExtensionDescription[]>[] = [];
 				if (args.extensionDevelopmentPath) {
-					pendingDev = args.extensionDevelopmentPath.map(devPath => ExtensionScanner.scanOneOrMultipleExtensions(new ExtensionScannerInput(product.version, product.commit, args.language, devMode, URI.revive(devPath).fsPath, false, true, translations), logger));
+					pendingDev = args.extensionDevelopmentPath.map(devPath => ExtensionScanner.scanOneOrMultipleExtensions(new ExtensionScannerInput(product.version, product.date, product.commit, args.language, devMode, URI.revive(devPath).fsPath, false, true, translations), logger));
 				}
 				const result: IExtensionDescription[] = [];
 				const skipExtensions = new Set<string>(args.skipExtensions.map(ExtensionIdentifier.toKey));
@@ -482,12 +482,6 @@ async function main(): Promise<void> {
 		logService.info('code server: tasks synched');
 		return tasks;
 	})();
-
-	channelServer.registerChannel('remoteterminal', new RemoteTerminalChannelServer(
-		rawURITransformerFactory,
-		logService,
-		synchingTasks
-	));
 
 	// see used APIs in src/vs/workbench/services/remote/common/remoteAgentFileSystemChannel.ts
 	class RemoteFileSystem implements IServerChannel<RemoteAgentConnectionContext> {
@@ -664,6 +658,13 @@ async function main(): Promise<void> {
 	// Startup
 	const instantiationService = new InstantiationService(services);
 	instantiationService.invokeFunction(accessor => {
+		channelServer.registerChannel('remoteterminal', new RemoteTerminalChannelServer(
+			rawURITransformerFactory,
+			logService,
+			accessor.get(IConfigurationService),
+			synchingTasks
+		));
+
 		const extensionManagementService = accessor.get(IExtensionManagementService);
 		channelServer.registerChannel('extensions', new ExtensionManagementChannel(extensionManagementService, requestContext => new URITransformer(rawURITransformerFactory(requestContext))));
 		installInitialExtensions(
@@ -701,9 +702,6 @@ async function main(): Promise<void> {
 
 				//#region headless
 				if (pathname === '/vscode-remote-resource') {
-					if (parsedUrl.query['tkn'] !== connectionToken) {
-						return serveError(req, res, 403, 'Forbidden.');
-					}
 					const filePath = parsedUrl.query['path'];
 					const fsPath = typeof filePath === 'string' && URI.from({ scheme: 'file', path: filePath }).fsPath;
 					if (!fsPath) {
