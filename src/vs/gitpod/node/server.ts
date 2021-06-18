@@ -225,6 +225,7 @@ async function installInitialExtensions(
 
 			let config: { vscode?: { extensions?: string[] } } | undefined;
 			try {
+				// TODO(ak) wait for content ready
 				const content = await fs.promises.readFile(path.join(workspaceInfoResponse.getCheckoutLocation(), '.gitpod.yml'), 'utf-8');
 				config = yaml.safeLoad(content) as any;
 			} catch { }
@@ -320,7 +321,7 @@ async function main(): Promise<void> {
 	const devMode = !!process.env['VSCODE_DEV'];
 	const connectionToken = generateUuid();
 
-	const parsedArgs = parseArgs(process.argv.splice(0, 2), OPTIONS);
+	const parsedArgs = parseArgs(process.argv, OPTIONS);
 	parsedArgs['user-data-dir'] = URI.file(path.join(os.homedir(), product.dataFolderName)).fsPath;
 	const productService = { _serviceBrand: undefined, ...product };
 	const environmentService = new NativeEnvironmentService(parsedArgs, productService);
