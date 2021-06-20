@@ -79,6 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		'function:accessCodeSyncStorage',
 		'function:getLoggedInUser',
 		'function:takeSnapshot',
+		'function:updateWorkspaceUserPin',
 		'function:sendHeartBeat'
 	]);
 	const pendingServerToken = (async () => {
@@ -195,6 +196,21 @@ export async function activate(context: vscode.ExtensionContext) {
 		} catch (err) {
 			console.error('cannot capture workspace snapshot', err);
 			await vscode.window.showErrorMessage(`Cannot capture workspace snapshot: ${err.toString()}`);
+		}
+	}));
+	context.subscriptions.push(vscode.commands.registerCommand('gitpod.enableDisableSharing', async () => {
+		try {
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				cancellable: true,
+				title: 'Toggling sharing.'
+			}, _ => {
+				return gitpodService.server.updateWorkspaceUserPin(workspaceId, 'toggle');
+			});
+			// const msg = `Workspace sharing ${enabled ? 'enabled' : 'disabled'}.`;
+			await vscode.window.showInformationMessage('done?');
+		} catch (err) {
+			await vscode.window.showErrorMessage(`Cannot toggle sharing: ${err.toString()}`);
 		}
 	}));
 	const communityStatusBarItem = vscode.window.createStatusBarItem('gitpod.community', vscode.StatusBarAlignment.Right, -100);

@@ -72,6 +72,10 @@
         "title": "%takeSnapshot%"
       },
       {
+        "command": "gitpod.enableDisableSharing",
+        "title": "%enableDisableSharing%"
+      },
+      {
         "command": "gitpod.ports.openBrowser",
         "title": "%openBrowser%",
         "icon": "$(globe)"
@@ -137,6 +141,10 @@
         {
           "command": "gitpod.stop.ws",
           "group": "gitpod@40"
+        },
+        {
+          "command": "gitpod.enableDisableSharing",
+          "group": "gitpod@50"
         }
       ],
       "accounts/context": [
@@ -219,6 +227,10 @@
         {
           "command": "gitpod.takeSnapshot",
           "group": "navigation@120"
+        },
+        {
+          "command": "gitpod.enableDisableSharing",
+          "group": "navigation@130"
         }
       ],
       "view/item/context": [
